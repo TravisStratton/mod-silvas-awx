@@ -116,7 +116,7 @@ func resourceInventoryGroupRead(_ context.Context, d *schema.ResourceData, m int
 	if err != nil {
 		return utils.DiagFetch(diagInventoryGroupTitle, id, err)
 	}
-	d = setInventoryGroupResourceData(d, res)
+	_ = setInventoryGroupResourceData(d, res)
 	return nil
 }
 

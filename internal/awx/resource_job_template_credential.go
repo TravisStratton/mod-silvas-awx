@@ -32,6 +32,9 @@ func resourceJobTemplateCredentials() *schema.Resource {
 				Description: "The ID of the credential to associate with the job template",
 			},
 		},
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 	}
 }
 

@@ -66,6 +66,6 @@ func dataSourceExecutionEnvironmentsRead(_ context.Context, d *schema.ResourceDa
 	}
 
 	ee := executionEnvironments[0]
-	d = setExecutionEnvironmentsResourceData(d, ee)
+	_ = setExecutionEnvironmentsResourceData(d, ee)
 	return diags
 }

@@ -173,7 +173,7 @@ func resourceTeamRead(_ context.Context, d *schema.ResourceData, m interface{}) 
 		return utils.DiagNotFound("team roles", id, err)
 	}
 
-	d = setTeamResourceData(d, team, entitlements)
+	_ = setTeamResourceData(d, team, entitlements)
 	return diags
 }
 

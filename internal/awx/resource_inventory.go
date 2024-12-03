@@ -104,7 +104,7 @@ func resourceInventoryUpdate(ctx context.Context, d *schema.ResourceData, m inte
 
 func resourceInventoryRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*awx.AWX)
-	id, err := strconv.Atoi(d.Id())
+
 	id, diags := utils.StateIDToInt(diagInventoryTitle, d)
 	if diags.HasError() {
 		return diags
@@ -113,7 +113,7 @@ func resourceInventoryRead(_ context.Context, d *schema.ResourceData, m interfac
 	if err != nil {
 		return utils.DiagFetch(diagInventoryTitle, id, err)
 	}
-	d = setInventoryResourceData(d, r)
+	_ = setInventoryResourceData(d, r)
 	return nil
 }
 

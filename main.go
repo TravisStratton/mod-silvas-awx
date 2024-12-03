@@ -2,9 +2,10 @@
 package main
 
 import (
+	"flag"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
-
 	"github.com/josh-silvas/terraform-provider-awx/internal/awx"
 )
 
@@ -18,11 +19,28 @@ import (
 // can be customized.
 //go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
 
+// func main() {
+// 	plugin.Serve(&plugin.ServeOpts{
+// 		ProviderAddr: "registry.terraform.io/josh-silvas/awx",
+// 		ProviderFunc: func() *schema.Provider {
+// 			return awx.Provider()
+// 		},
+// 	})
+// }
+
 func main() {
-	plugin.Serve(&plugin.ServeOpts{
+	var debug bool
+
+	flag.BoolVar(&debug, "debug", false, "set to true to run the provider with support for debuggers like delve")
+	flag.Parse()
+
+	opts := &plugin.ServeOpts{
+		Debug:        debug,
 		ProviderAddr: "registry.terraform.io/josh-silvas/awx",
 		ProviderFunc: func() *schema.Provider {
 			return awx.Provider()
 		},
-	})
+	}
+
+	plugin.Serve(opts)
 }

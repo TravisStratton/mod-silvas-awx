@@ -64,7 +64,7 @@ func dataSourceJobTemplateRoleRead(_ context.Context, d *schema.ResourceData, m 
 		id := roleID.(int)
 		for _, v := range rolesList {
 			if v != nil && id == v.ID {
-				d = setJobTemplateRoleData(d, v)
+				_ = setJobTemplateRoleData(d, v)
 				return diags
 			}
 		}
@@ -75,7 +75,7 @@ func dataSourceJobTemplateRoleRead(_ context.Context, d *schema.ResourceData, m 
 
 		for _, v := range rolesList {
 			if v != nil && name == v.Name {
-				d = setJobTemplateRoleData(d, v)
+				_ = setJobTemplateRoleData(d, v)
 				return diags
 			}
 		}

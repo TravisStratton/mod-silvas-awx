@@ -334,7 +334,7 @@ func resourceNotificationTemplateRead(_ context.Context, d *schema.ResourceData,
 		return utils.DiagNotFound(diagNotificationTemplateTitle, id, err)
 
 	}
-	d = setNotificationTemplateResourceData(d, res)
+	_ = setNotificationTemplateResourceData(d, res)
 	return nil
 }
 

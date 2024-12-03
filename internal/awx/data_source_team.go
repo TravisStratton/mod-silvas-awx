@@ -71,6 +71,6 @@ func dataSourceTeamsRead(_ context.Context, d *schema.ResourceData, m interface{
 		return utils.DiagFetch(diagTeamTitle, teams[0].ID, err)
 	}
 
-	d = setTeamResourceData(d, teams[0], entitlements)
+	_ = setTeamResourceData(d, teams[0], entitlements)
 	return diags
 }

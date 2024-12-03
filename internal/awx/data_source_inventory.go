@@ -76,6 +76,6 @@ func dataSourceInventoriesRead(_ context.Context, d *schema.ResourceData, m inte
 	}
 
 	inventory := inventories[0]
-	d = setInventoryResourceData(d, inventory)
+	_ = setInventoryResourceData(d, inventory)
 	return diags
 }

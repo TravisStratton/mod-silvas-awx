@@ -64,6 +64,6 @@ func dataSourceNotificationTemplatesRead(_ context.Context, d *schema.ResourceDa
 	}
 
 	notificationTemplate := notificationTemplates[0]
-	d = setNotificationTemplateResourceData(d, notificationTemplate)
+	_ = setNotificationTemplateResourceData(d, notificationTemplate)
 	return diags
 }

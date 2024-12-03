@@ -147,7 +147,7 @@ func resourceHostRead(_ context.Context, d *schema.ResourceData, m interface{}) 
 	if err != nil {
 		return utils.DiagNotFound(diagHostTitle, id, err)
 	}
-	d = setHostResourceData(d, res)
+	_ = setHostResourceData(d, res)
 	return nil
 }
 

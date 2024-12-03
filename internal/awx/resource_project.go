@@ -200,7 +200,7 @@ func resourceProjectRead(_ context.Context, d *schema.ResourceData, m interface{
 	if err != nil {
 		return utils.DiagNotFound(diagProjectTitle, id, err)
 	}
-	d = setProjectResourceData(d, res)
+	_ = setProjectResourceData(d, res)
 	return diags
 }
 

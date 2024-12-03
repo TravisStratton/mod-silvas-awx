@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 )
 
 // JobTemplateService implements awx job template apis.
@@ -39,6 +40,31 @@ func (jt *JobTemplateService) GetJobTemplateByID(id int, params map[string]strin
 	if err := CheckResponse(resp); err != nil {
 		return nil, err
 	}
+
+	// Pull in credentials related to the job template
+	// Travis Credential Code
+	credential_result := new(JobTemplateCredentials)
+	endpoint = fmt.Sprintf("%s%d/credentials/", jobTemplateAPIEndpoint, id)
+	cred_resp, err := jt.client.Requester.GetJSON(endpoint, credential_result, params)
+	if cred_resp != nil {
+		func() {
+			if err := cred_resp.Body.Close(); err != nil {
+				fmt.Println(err)
+			}
+		}()
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if err := CheckResponse(cred_resp); err != nil {
+		return nil, err
+	}
+
+	for _, v := range credential_result.Results {
+		result.Credentials = append(result.Credentials, v.ID)
+	}
+	sort.Ints(result.Credentials)
 
 	return result, nil
 }
@@ -111,7 +137,8 @@ func (jt *JobTemplateService) CreateJobTemplate(data map[string]interface{}, par
 	if err != nil {
 		return nil, err
 	}
-
+	//travis := string(payload)
+	//fmt.Println(travis)
 	resp, err := jt.client.Requester.PostJSON(jobTemplateAPIEndpoint, bytes.NewReader(payload), result, params)
 	if resp != nil {
 		func() {

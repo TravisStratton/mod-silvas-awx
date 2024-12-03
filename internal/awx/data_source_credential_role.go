@@ -62,7 +62,7 @@ func dataSourceCredentialMachineRoleRead(_ context.Context, d *schema.ResourceDa
 		id := roleID.(int)
 		for _, v := range rolesList {
 			if v != nil && id == v.ID {
-				d = setCredentialRoleData(d, v)
+				_ = setCredentialRoleData(d, v)
 				return diags
 			}
 		}
@@ -73,7 +73,7 @@ func dataSourceCredentialMachineRoleRead(_ context.Context, d *schema.ResourceDa
 
 		for _, v := range rolesList {
 			if v != nil && name == v.Name {
-				d = setCredentialRoleData(d, v)
+				_ = setCredentialRoleData(d, v)
 				return diags
 			}
 		}

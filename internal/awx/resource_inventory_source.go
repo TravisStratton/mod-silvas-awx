@@ -64,7 +64,6 @@ func resourceInventorySource() *schema.Resource {
 			"inventory_id": {
 				Type:        schema.TypeInt,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The inventory to use for the inventory source.",
 			},
 			"credential_id": {
@@ -127,6 +126,11 @@ func resourceInventorySource() *schema.Resource {
 				Optional:    true,
 				Description: "[Obsolete] The source path for the inventory source.",
 			},
+			"execution_environment": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The selected execution environment that this playbook will be run in.",
+			},
 		},
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -153,10 +157,11 @@ func resourceInventorySourceCreate(ctx context.Context, d *schema.ResourceData, 
 		"verbosity":            d.Get("verbosity").(int),
 		// obsolete schema added so terraform doesn't break
 		// these don't do anything in later versions of AWX! Update your code.
-		"source_regions":   d.Get("source_regions").(string),
-		"instance_filters": d.Get("instance_filters").(string),
-		"group_by":         d.Get("group_by").(string),
-		"source_path":      d.Get("source_path").(string),
+		"source_regions":        d.Get("source_regions").(string),
+		"instance_filters":      d.Get("instance_filters").(string),
+		"group_by":              d.Get("group_by").(string),
+		"source_path":           d.Get("source_path").(string),
+		"execution_environment": utils.AtoiDefault(d.Get("execution_environment").(string), nil),
 	}
 	if _, ok := d.GetOk("credential_id"); ok {
 		payload["credential"] = d.Get("credential_id").(int)
@@ -199,10 +204,11 @@ func resourceInventorySourceUpdate(ctx context.Context, d *schema.ResourceData, 
 		"verbosity":            d.Get("verbosity").(int),
 		// obsolete schema added so terraform doesn't break
 		// these don't do anything in later versions of AWX! Update your code.
-		"source_regions":   d.Get("source_regions").(string),
-		"instance_filters": d.Get("instance_filters").(string),
-		"group_by":         d.Get("group_by").(string),
-		"source_path":      d.Get("source_path").(string),
+		"source_regions":        d.Get("source_regions").(string),
+		"instance_filters":      d.Get("instance_filters").(string),
+		"group_by":              d.Get("group_by").(string),
+		"source_path":           d.Get("source_path").(string),
+		"execution_environment": utils.AtoiDefault(d.Get("execution_environment").(string), nil),
 	}
 	if _, ok := d.GetOk("credential_id"); ok {
 		payload["credential"] = d.Get("credential_id").(int)
@@ -241,7 +247,7 @@ func resourceInventorySourceRead(_ context.Context, d *schema.ResourceData, m in
 	if err != nil {
 		return utils.DiagFetch(diagInventorySourceTitle, id, err)
 	}
-	d = setInventorySourceResourceData(d, res)
+	_ = setInventorySourceResourceData(d, res)
 	return nil
 }
 
@@ -311,6 +317,8 @@ func setInventorySourceResourceData(d *schema.ResourceData, r *awx.InventorySour
 	if err := d.Set("source_path", r.SourcePath); err != nil {
 		fmt.Println("Error setting source_path", err)
 	}
-
+	if err := d.Set("execution_environment", r.SourcePath); err != nil {
+		fmt.Println("Error setting execution_environment", err)
+	}
 	return d
 }

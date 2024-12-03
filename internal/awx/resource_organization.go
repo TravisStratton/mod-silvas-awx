@@ -115,7 +115,7 @@ func resourceOrganizationsRead(_ context.Context, d *schema.ResourceData, m inte
 		return utils.DiagNotFound(diagOrganizationTitle, id, err)
 
 	}
-	d = setOrganizationsResourceData(d, res)
+	_ = setOrganizationsResourceData(d, res)
 	return nil
 }
 

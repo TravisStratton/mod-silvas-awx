@@ -75,7 +75,7 @@ func dataSourceOrganizationRolesRead(_ context.Context, d *schema.ResourceData, 
 		id := roleID.(int)
 		for _, v := range rolesList {
 			if v != nil && id == v.ID {
-				d = setOrganizationRoleData(d, v)
+				_ = setOrganizationRoleData(d, v)
 				return diags
 			}
 		}
@@ -86,7 +86,7 @@ func dataSourceOrganizationRolesRead(_ context.Context, d *schema.ResourceData, 
 
 		for _, v := range rolesList {
 			if v != nil && name == v.Name {
-				d = setOrganizationRoleData(d, v)
+				_ = setOrganizationRoleData(d, v)
 				return diags
 			}
 		}

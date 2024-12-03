@@ -188,7 +188,7 @@ func resourceWorkflowJobTemplateRead(_ context.Context, d *schema.ResourceData, 
 		return utils.DiagNotFound("workflow job template", id, err)
 
 	}
-	d = setWorkflowJobTemplateResourceData(d, res)
+	_ = setWorkflowJobTemplateResourceData(d, res)
 	return nil
 }
 

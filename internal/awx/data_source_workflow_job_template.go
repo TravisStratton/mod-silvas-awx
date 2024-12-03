@@ -53,7 +53,7 @@ func dataSourceWorkflowJobTemplateRead(_ context.Context, d *schema.ResourceData
 	if groupName, okName := d.GetOk("name"); okName {
 		for _, template := range workflowJobTemplate {
 			if template.Name == groupName {
-				d = setWorkflowJobTemplateResourceData(d, template)
+				_ = setWorkflowJobTemplateResourceData(d, template)
 				return diags
 			}
 		}
@@ -73,7 +73,7 @@ func dataSourceWorkflowJobTemplateRead(_ context.Context, d *schema.ResourceData
 				params,
 			)
 		}
-		d = setWorkflowJobTemplateResourceData(d, workflowJobTemplate[0])
+		_ = setWorkflowJobTemplateResourceData(d, workflowJobTemplate[0])
 		return diags
 	}
 	return utils.Diagf(

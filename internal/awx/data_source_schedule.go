@@ -66,6 +66,6 @@ func dataSourceSchedulesRead(_ context.Context, d *schema.ResourceData, m interf
 	}
 
 	schedule := schedules[0]
-	d = setScheduleResourceData(d, schedule)
+	_ = setScheduleResourceData(d, schedule)
 	return diags
 }

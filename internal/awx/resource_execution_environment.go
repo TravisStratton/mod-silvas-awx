@@ -123,7 +123,7 @@ func resourceExecutionEnvironmentsRead(_ context.Context, d *schema.ResourceData
 		return utils.DiagNotFound(diagExecutionEnvironmentTitle, id, err)
 
 	}
-	d = setExecutionEnvironmentsResourceData(d, res)
+	_ = setExecutionEnvironmentsResourceData(d, res)
 	return nil
 }
 

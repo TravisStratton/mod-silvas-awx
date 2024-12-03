@@ -66,6 +66,6 @@ func dataSourceProjectsRead(_ context.Context, d *schema.ResourceData, m interfa
 	}
 
 	project := projects[0]
-	d = setProjectResourceData(d, project)
+	_ = setProjectResourceData(d, project)
 	return diags
 }

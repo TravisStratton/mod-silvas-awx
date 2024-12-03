@@ -72,6 +72,6 @@ func dataSourceInventoryGroupRead(_ context.Context, d *schema.ResourceData, m i
 	}
 
 	group := groups[0]
-	d = setInventoryGroupResourceData(d, group)
+	_ = setInventoryGroupResourceData(d, group)
 	return diags
 }

@@ -57,7 +57,7 @@ func dataSourceJobTemplateRead(_ context.Context, d *schema.ResourceData, m inte
 	for _, template := range jobTemplate {
 		log.Printf("loop %v", template.Name)
 		if template.Name == params["name"] {
-			d = setJobTemplateResourceData(d, template)
+			_ = setJobTemplateResourceData(d, template)
 			return diags
 		}
 	}
@@ -78,7 +78,7 @@ func dataSourceJobTemplateRead(_ context.Context, d *schema.ResourceData, m inte
 				params,
 			)
 		}
-		d = setJobTemplateResourceData(d, jobTemplate[0])
+		_ = setJobTemplateResourceData(d, jobTemplate[0])
 		return diags
 	}
 	return utils.Diagf(

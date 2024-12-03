@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	awx "github.com/josh-silvas/terraform-provider-awx/tools/goawx"
@@ -37,13 +38,18 @@ func resourceJobTemplate() *schema.Resource {
 			// Run, Check, Scan
 			"job_type": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				Description: "Can be one of: `run`, `check`, or `scan`",
+				Default:     "run",
 			},
 			"inventory_id": {
-				Type:        schema.TypeString,
+				Type:        schema.TypeInt,
 				Optional:    true,
 				Description: "The inventory ID to associate with the job template. If not set, `ask_inventory_on_launch` must be true.",
+			},
+			"organization_id": {
+				Type:     schema.TypeInt,
+				Required: true,
 			},
 			"project_id": {
 				Type:        schema.TypeInt,
@@ -52,9 +58,13 @@ func resourceJobTemplate() *schema.Resource {
 			},
 			"playbook": {
 				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "",
+				Required:    true,
 				Description: "The playbook to associate with the job template.",
+			},
+			"scm_branch": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Branch to use in job run. Project default used if blank. Only allowed if project allow_override field is set to true.",
 			},
 			"forks": {
 				Type:        schema.TypeInt,
@@ -79,6 +89,7 @@ func resourceJobTemplate() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The extra variables to associate with the job template.",
+				StateFunc:   utils.Normalize,
 			},
 			"job_tags": {
 				Type:        schema.TypeString,
@@ -116,10 +127,20 @@ func resourceJobTemplate() *schema.Resource {
 				Default:     false,
 				Description: "Use the fact cache on the job template.",
 			},
+			"execution_environment": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The selected execution environment that this playbook will be run in.",
+			},
 			"host_config_key": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
+			},
+			"ask_scm_branch_on_launch": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 			"ask_diff_mode_on_launch": {
 				Type:     schema.TypeBool,
@@ -153,6 +174,36 @@ func resourceJobTemplate() *schema.Resource {
 				Default:  false,
 			},
 			"ask_credential_on_launch": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"ask_execution_environment_on_launch": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"ask_labels_on_launch": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"ask_forks_on_launch": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"ask_job_slice_count_on_launch": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"ask_timeout_on_launch": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"ask_instance_groups_on_launch": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
@@ -192,12 +243,34 @@ func resourceJobTemplate() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
-			"execution_environment": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "",
-				Description: "The selected execution environment that this playbook will be run in.",
+			"job_slice_count": {
+				Type:     schema.TypeInt,
+				Optional: true,
 			},
+			"webhook_service": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
+			},
+			"webhook_credential": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"prevent_instance_group_fallback": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"credential_ids": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeInt,
+				},
+			},
+		},
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 	}
 }
@@ -205,40 +278,57 @@ func resourceJobTemplate() *schema.Resource {
 func resourceJobTemplateCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*awx.AWX)
 	result, err := client.JobTemplateService.CreateJobTemplate(map[string]interface{}{
-		"name":                     d.Get("name").(string),
-		"description":              d.Get("description").(string),
-		"job_type":                 d.Get("job_type").(string),
-		"inventory":                utils.AtoiDefault(d.Get("inventory_id").(string), nil),
-		"project":                  d.Get("project_id").(int),
-		"playbook":                 d.Get("playbook").(string),
-		"forks":                    d.Get("forks").(int),
-		"limit":                    d.Get("limit").(string),
-		"verbosity":                d.Get("verbosity").(int),
-		"extra_vars":               d.Get("extra_vars").(string),
-		"job_tags":                 d.Get("job_tags").(string),
-		"force_handlers":           d.Get("force_handlers").(bool),
-		"skip_tags":                d.Get("skip_tags").(string),
-		"start_at_task":            d.Get("start_at_task").(string),
-		"timeout":                  d.Get("timeout").(int),
-		"use_fact_cache":           d.Get("use_fact_cache").(bool),
-		"host_config_key":          d.Get("host_config_key").(string),
-		"ask_diff_mode_on_launch":  d.Get("ask_diff_mode_on_launch").(bool),
-		"ask_variables_on_launch":  d.Get("ask_variables_on_launch").(bool),
-		"ask_limit_on_launch":      d.Get("ask_limit_on_launch").(bool),
-		"ask_tags_on_launch":       d.Get("ask_tags_on_launch").(bool),
-		"ask_skip_tags_on_launch":  d.Get("ask_skip_tags_on_launch").(bool),
-		"ask_job_type_on_launch":   d.Get("ask_job_type_on_launch").(bool),
-		"ask_verbosity_on_launch":  d.Get("ask_verbosity_on_launch").(bool),
-		"ask_inventory_on_launch":  d.Get("ask_inventory_on_launch").(bool),
-		"ask_credential_on_launch": d.Get("ask_credential_on_launch").(bool),
-		"survey_enabled":           d.Get("survey_enabled").(bool),
-		"become_enabled":           d.Get("become_enabled").(bool),
-		"diff_mode":                d.Get("diff_mode").(bool),
-		"allow_simultaneous":       d.Get("allow_simultaneous").(bool),
-		"custom_virtualenv":        utils.AtoiDefault(d.Get("custom_virtualenv").(string), nil),
-		"execution_environment":    utils.AtoiDefault(d.Get("execution_environment").(string), nil),
+		"name":                                d.Get("name").(string),
+		"description":                         d.Get("description").(string),
+		"job_type":                            d.Get("job_type").(string),
+		"inventory":                           d.Get("inventory_id").(int),
+		"organization":                        d.Get("organization_id").(int),
+		"project":                             d.Get("project_id").(int),
+		"playbook":                            d.Get("playbook").(string),
+		"scm_branch":                          d.Get("scm_branch").(string),
+		"forks":                               d.Get("forks").(int),
+		"limit":                               d.Get("limit").(string),
+		"verbosity":                           d.Get("verbosity").(int),
+		"extra_vars":                          d.Get("extra_vars").(string),
+		"job_tags":                            d.Get("job_tags").(string),
+		"force_handlers":                      d.Get("force_handlers").(bool),
+		"skip_tags":                           d.Get("skip_tags").(string),
+		"start_at_task":                       d.Get("start_at_task").(string),
+		"timeout":                             d.Get("timeout").(int),
+		"use_fact_cache":                      d.Get("use_fact_cache").(bool),
+		"execution_environment":               d.Get("execution_environment").(int),
+		"host_config_key":                     d.Get("host_config_key").(string),
+		"ask_scm_branch_on_launch":            d.Get("ask_scm_branch_on_launch").(bool),
+		"ask_diff_mode_on_launch":             d.Get("ask_diff_mode_on_launch").(bool),
+		"ask_variables_on_launch":             d.Get("ask_variables_on_launch").(bool),
+		"ask_limit_on_launch":                 d.Get("ask_limit_on_launch").(bool),
+		"ask_tags_on_launch":                  d.Get("ask_tags_on_launch").(bool),
+		"ask_skip_tags_on_launch":             d.Get("ask_skip_tags_on_launch").(bool),
+		"ask_job_type_on_launch":              d.Get("ask_job_type_on_launch").(bool),
+		"ask_verbosity_on_launch":             d.Get("ask_verbosity_on_launch").(bool),
+		"ask_inventory_on_launch":             d.Get("ask_inventory_on_launch").(bool),
+		"ask_credential_on_launch":            d.Get("ask_credential_on_launch").(bool),
+		"ask_execution_environment_on_launch": d.Get("ask_execution_environment_on_launch").(bool),
+		"ask_labels_on_launch":                d.Get("ask_labels_on_launch").(bool),
+		"ask_forks_on_launch":                 d.Get("ask_forks_on_launch").(bool),
+		"ask_job_slice_count_on_launch":       d.Get("ask_job_slice_count_on_launch").(bool),
+		"ask_timeout_on_launch":               d.Get("ask_timeout_on_launch").(bool),
+		"ask_instance_groups_on_launch":       d.Get("ask_instance_groups_on_launch").(bool),
+		"survey_enabled":                      d.Get("survey_enabled").(bool),
+		"become_enabled":                      d.Get("become_enabled").(bool),
+		"diff_mode":                           d.Get("diff_mode").(bool),
+		"allow_simultaneous":                  d.Get("allow_simultaneous").(bool),
+		"custom_virtualenv":                   utils.AtoiDefault(d.Get("custom_virtualenv").(string), nil),
+		"job_slice_count":                     d.Get("job_slice_count").(int),
+		"webhook_service":                     d.Get("webhook_service").(string),
+		"webhook_credential":                  utils.AtoiDefault(d.Get("webhook_credential").(string), nil),
+		"prevent_instance_group_fallback":     d.Get("prevent_instance_group_fallback").(bool),
 	}, map[string]string{})
+
+	tflog.Debug(ctx, "will we get error")
+
 	if err != nil {
+		tflog.Debug(ctx, "we WILL get error")
 		return utils.DiagCreate(diagJobTemplateTitle, err)
 	}
 
@@ -259,38 +349,51 @@ func resourceJobTemplateUpdate(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	if _, err := client.JobTemplateService.UpdateJobTemplate(id, map[string]interface{}{
-		"name":                     d.Get("name").(string),
-		"description":              d.Get("description").(string),
-		"job_type":                 d.Get("job_type").(string),
-		"inventory":                utils.AtoiDefault(d.Get("inventory_id").(string), nil),
-		"project":                  d.Get("project_id").(int),
-		"playbook":                 d.Get("playbook").(string),
-		"forks":                    d.Get("forks").(int),
-		"limit":                    d.Get("limit").(string),
-		"verbosity":                d.Get("verbosity").(int),
-		"extra_vars":               d.Get("extra_vars").(string),
-		"job_tags":                 d.Get("job_tags").(string),
-		"force_handlers":           d.Get("force_handlers").(bool),
-		"skip_tags":                d.Get("skip_tags").(string),
-		"start_at_task":            d.Get("start_at_task").(string),
-		"timeout":                  d.Get("timeout").(int),
-		"use_fact_cache":           d.Get("use_fact_cache").(bool),
-		"host_config_key":          d.Get("host_config_key").(string),
-		"ask_diff_mode_on_launch":  d.Get("ask_diff_mode_on_launch").(bool),
-		"ask_variables_on_launch":  d.Get("ask_variables_on_launch").(bool),
-		"ask_limit_on_launch":      d.Get("ask_limit_on_launch").(bool),
-		"ask_tags_on_launch":       d.Get("ask_tags_on_launch").(bool),
-		"ask_skip_tags_on_launch":  d.Get("ask_skip_tags_on_launch").(bool),
-		"ask_job_type_on_launch":   d.Get("ask_job_type_on_launch").(bool),
-		"ask_verbosity_on_launch":  d.Get("ask_verbosity_on_launch").(bool),
-		"ask_inventory_on_launch":  d.Get("ask_inventory_on_launch").(bool),
-		"ask_credential_on_launch": d.Get("ask_credential_on_launch").(bool),
-		"survey_enabled":           d.Get("survey_enabled").(bool),
-		"become_enabled":           d.Get("become_enabled").(bool),
-		"diff_mode":                d.Get("diff_mode").(bool),
-		"allow_simultaneous":       d.Get("allow_simultaneous").(bool),
-		"custom_virtualenv":        utils.AtoiDefault(d.Get("custom_virtualenv").(string), nil),
-		"execution_environment":    utils.AtoiDefault(d.Get("execution_environment").(string), nil),
+		"name":                                d.Get("name").(string),
+		"description":                         d.Get("description").(string),
+		"job_type":                            d.Get("job_type").(string),
+		"inventory":                           d.Get("inventory_id").(int),
+		"organization":                        d.Get("organization_id").(int),
+		"project":                             d.Get("project_id").(int),
+		"playbook":                            d.Get("playbook").(string),
+		"scm_branch":                          d.Get("scm_branch").(string),
+		"forks":                               d.Get("forks").(int),
+		"limit":                               d.Get("limit").(string),
+		"verbosity":                           d.Get("verbosity").(int),
+		"extra_vars":                          d.Get("extra_vars").(string),
+		"job_tags":                            d.Get("job_tags").(string),
+		"force_handlers":                      d.Get("force_handlers").(bool),
+		"skip_tags":                           d.Get("skip_tags").(string),
+		"start_at_task":                       d.Get("start_at_task").(string),
+		"timeout":                             d.Get("timeout").(int),
+		"use_fact_cache":                      d.Get("use_fact_cache").(bool),
+		"execution_environment":               d.Get("execution_environment").(int),
+		"host_config_key":                     d.Get("host_config_key").(string),
+		"ask_scm_branch_on_launch":            d.Get("ask_scm_branch_on_launch").(bool),
+		"ask_diff_mode_on_launch":             d.Get("ask_diff_mode_on_launch").(bool),
+		"ask_variables_on_launch":             d.Get("ask_variables_on_launch").(bool),
+		"ask_limit_on_launch":                 d.Get("ask_limit_on_launch").(bool),
+		"ask_tags_on_launch":                  d.Get("ask_tags_on_launch").(bool),
+		"ask_skip_tags_on_launch":             d.Get("ask_skip_tags_on_launch").(bool),
+		"ask_job_type_on_launch":              d.Get("ask_job_type_on_launch").(bool),
+		"ask_verbosity_on_launch":             d.Get("ask_verbosity_on_launch").(bool),
+		"ask_inventory_on_launch":             d.Get("ask_inventory_on_launch").(bool),
+		"ask_credential_on_launch":            d.Get("ask_credential_on_launch").(bool),
+		"ask_execution_environment_on_launch": d.Get("ask_execution_environment_on_launch").(bool),
+		"ask_labels_on_launch":                d.Get("ask_labels_on_launch").(bool),
+		"ask_forks_on_launch":                 d.Get("ask_forks_on_launch").(bool),
+		"ask_job_slice_count_on_launch":       d.Get("ask_job_slice_count_on_launch").(bool),
+		"ask_timeout_on_launch":               d.Get("ask_timeout_on_launch").(bool),
+		"ask_instance_groups_on_launch":       d.Get("ask_instance_groups_on_launch").(bool),
+		"survey_enabled":                      d.Get("survey_enabled").(bool),
+		"become_enabled":                      d.Get("become_enabled").(bool),
+		"diff_mode":                           d.Get("diff_mode").(bool),
+		"allow_simultaneous":                  d.Get("allow_simultaneous").(bool),
+		"custom_virtualenv":                   utils.AtoiDefault(d.Get("custom_virtualenv").(string), nil),
+		"job_slice_count":                     d.Get("job_slice_count").(int),
+		"webhook_service":                     d.Get("webhook_service").(string),
+		"webhook_credential":                  utils.AtoiDefault(d.Get("webhook_credential").(string), nil),
+		"prevent_instance_group_fallback":     d.Get("prevent_instance_group_fallback").(bool),
 	}, map[string]string{}); err != nil {
 		return utils.DiagUpdate(diagJobTemplateTitle, id, err)
 	}
@@ -298,6 +401,7 @@ func resourceJobTemplateUpdate(ctx context.Context, d *schema.ResourceData, m in
 	return resourceJobTemplateRead(ctx, d, m)
 }
 
+// func resourceJobTemplateRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 func resourceJobTemplateRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*awx.AWX)
 	id, diags := utils.StateIDToInt(diagJobTemplateTitle, d)
@@ -312,7 +416,7 @@ func resourceJobTemplateRead(_ context.Context, d *schema.ResourceData, m interf
 	if res.ExtraVars != "" {
 		res.ExtraVars = utils.Normalize(res.ExtraVars)
 	}
-	d = setJobTemplateResourceData(d, res)
+	_ = setJobTemplateResourceData(d, res)
 	return nil
 }
 
@@ -335,6 +439,24 @@ func setJobTemplateResourceData(d *schema.ResourceData, r *awx.JobTemplate) *sch
 	}
 	if err := d.Set("ask_credential_on_launch", r.AskCredentialOnLaunch); err != nil {
 		fmt.Println("Error setting ask_credential_on_launch", err)
+	}
+	if err := d.Set("ask_execution_environment_on_launch", r.AskExecutionEnvironmentOnLaunch); err != nil {
+		fmt.Println("Error setting ask_execution_environment_on_launch", err)
+	}
+	if err := d.Set("ask_labels_on_launch", r.AskLabelsOnLaunch); err != nil {
+		fmt.Println("Error setting ask_labels_on_launch", err)
+	}
+	if err := d.Set("ask_forks_on_launch", r.AskForksOnLaunch); err != nil {
+		fmt.Println("Error setting ask_forks_on_launch", err)
+	}
+	if err := d.Set("ask_job_slice_count_on_launch", r.AskJobSliceCountOnLaunch); err != nil {
+		fmt.Println("Error setting ask_job_slice_count_on_launch", err)
+	}
+	if err := d.Set("ask_timeout_on_launch", r.AskTimeoutOnLaunch); err != nil {
+		fmt.Println("Error setting ask_timeout_on_launch", err)
+	}
+	if err := d.Set("ask_instance_groups_on_launch", r.AskInstanceGroupsOnLaunch); err != nil {
+		fmt.Println("Error setting ask_instance_groups_on_launch", err)
 	}
 	if err := d.Set("ask_job_type_on_launch", r.AskJobTypeOnLaunch); err != nil {
 		fmt.Println("Error setting ask_job_type_on_launch", err)
@@ -366,6 +488,9 @@ func setJobTemplateResourceData(d *schema.ResourceData, r *awx.JobTemplate) *sch
 	if err := d.Set("host_config_key", r.HostConfigKey); err != nil {
 		fmt.Println("Error setting host_config_key", err)
 	}
+	if err := d.Set("ask_scm_branch_on_launch", r.HostConfigKey); err != nil {
+		fmt.Println("Error setting ask_scm_branch_on_launch", err)
+	}
 	if err := d.Set("inventory_id", r.Inventory); err != nil {
 		fmt.Println("Error setting inventory_id", err)
 	}
@@ -380,6 +505,18 @@ func setJobTemplateResourceData(d *schema.ResourceData, r *awx.JobTemplate) *sch
 	}
 	if err := d.Set("custom_virtualenv", r.CustomVirtualenv); err != nil {
 		fmt.Println("Error setting custom_virtualenv", err)
+	}
+	if err := d.Set("job_slice_count", r.JobSliceCount); err != nil {
+		fmt.Println("Error setting job_slice_count", err)
+	}
+	if err := d.Set("webhook_service", r.WebhookService); err != nil {
+		fmt.Println("Error setting webhook_service", err)
+	}
+	if err := d.Set("webhook_credential", r.WebhookCredential); err != nil {
+		fmt.Println("Error setting webhook_credential", err)
+	}
+	if err := d.Set("prevent_instance_group_fallback", r.PreventInstanceGroupFallback); err != nil {
+		fmt.Println("Error setting prevent_instance_group_fallback", err)
 	}
 	if err := d.Set("limit", r.Limit); err != nil {
 		fmt.Println("Error setting limit", err)
@@ -396,6 +533,12 @@ func setJobTemplateResourceData(d *schema.ResourceData, r *awx.JobTemplate) *sch
 	if err := d.Set("playbook", r.Playbook); err != nil {
 		fmt.Println("Error setting playbook", err)
 	}
+	if err := d.Set("scm_branch", r.ScmBranch); err != nil {
+		fmt.Println("Error setting scm_branch", err)
+	}
+	if err := d.Set("organization_id", r.Organization); err != nil {
+		fmt.Println("Error setting organization_id", err)
+	}
 	if err := d.Set("project_id", r.Project); err != nil {
 		fmt.Println("Error setting project_id", err)
 	}
@@ -410,6 +553,12 @@ func setJobTemplateResourceData(d *schema.ResourceData, r *awx.JobTemplate) *sch
 	}
 	if err := d.Set("verbosity", r.Verbosity); err != nil {
 		fmt.Println("Error setting verbosity", err)
+	}
+	if err := d.Set("execution_environment", r.ExecutionEnvironment); err != nil {
+		fmt.Println("Error setting execution_environment", err)
+	}
+	if err := d.Set("credential_ids", r.Credentials); err != nil {
+		fmt.Println("Error setting credential_ids", err)
 	}
 	d.SetId(strconv.Itoa(r.ID))
 	return d

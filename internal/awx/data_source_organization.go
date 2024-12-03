@@ -66,6 +66,6 @@ func dataSourceOrganizationRead(_ context.Context, d *schema.ResourceData, m int
 	}
 
 	organization := organizations[0]
-	d = setOrganizationsResourceData(d, organization)
+	_ = setOrganizationsResourceData(d, organization)
 	return diags
 }

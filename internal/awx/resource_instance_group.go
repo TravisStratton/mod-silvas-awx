@@ -135,7 +135,7 @@ func resourceInstanceGroupRead(_ context.Context, d *schema.ResourceData, m inte
 	if err != nil {
 		return utils.DiagNotFound(diagInstanceGroupTitle, id, err)
 	}
-	d = setInstanceGroupResourceData(d, res)
+	_ = setInstanceGroupResourceData(d, res)
 	return diag.Diagnostics{}
 }
 

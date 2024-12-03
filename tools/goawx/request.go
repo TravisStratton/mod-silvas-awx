@@ -172,6 +172,7 @@ func (r *Requester) ReadJSONResponse(response *http.Response, responseStruct int
 	if err := json.NewDecoder(response.Body).Decode(responseStruct); err != nil {
 		return response, err
 	}
+
 	return response, nil
 }
 

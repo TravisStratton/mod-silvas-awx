@@ -140,7 +140,7 @@ func resourceScheduleRead(_ context.Context, d *schema.ResourceData, m interface
 		return utils.DiagNotFound("Schedule", id, err)
 
 	}
-	d = setScheduleResourceData(d, res)
+	_ = setScheduleResourceData(d, res)
 	return nil
 }
 
