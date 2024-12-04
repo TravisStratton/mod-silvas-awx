@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 )
 
@@ -42,13 +43,25 @@ func (jt *JobTemplateService) GetJobTemplateByID(id int, params map[string]strin
 	}
 
 	// Pull in credentials related to the job template
-	// Travis Credential Code
-	credential_result := new(JobTemplateCredentials)
-	endpoint = fmt.Sprintf("%s%d/credentials/", jobTemplateAPIEndpoint, id)
-	cred_resp, err := jt.client.Requester.GetJSON(endpoint, credential_result, params)
-	if cred_resp != nil {
+	associatedCredentials, err := jt.ListJobTemplateCredentials(id, params)
+	if err != nil {
+		return nil, err
+	}
+	result.Credentials = append(result.Credentials, associatedCredentials...)
+
+	sort.Ints(result.Credentials)
+	// end my code
+	return result, nil
+}
+
+// ListJobTemplateCredentials returns a list of int ids for credentials associated
+func (jt *JobTemplateService) ListJobTemplateCredentials(id int, params map[string]string) ([]int, error) {
+	credentialResult := new(JobTemplateCredentials)
+	endpoint := fmt.Sprintf("%s%d/credentials/", jobTemplateAPIEndpoint, id)
+	credResp, err := jt.client.Requester.GetJSON(endpoint, credentialResult, params)
+	if credResp != nil {
 		func() {
-			if err := cred_resp.Body.Close(); err != nil {
+			if err := credResp.Body.Close(); err != nil {
 				fmt.Println(err)
 			}
 		}()
@@ -57,16 +70,17 @@ func (jt *JobTemplateService) GetJobTemplateByID(id int, params map[string]strin
 		return nil, err
 	}
 
-	if err := CheckResponse(cred_resp); err != nil {
+	if err := CheckResponse(credResp); err != nil {
 		return nil, err
 	}
 
-	for _, v := range credential_result.Results {
-		result.Credentials = append(result.Credentials, v.ID)
-	}
-	sort.Ints(result.Credentials)
+	credInts := make([]int, credentialResult.Count)
 
-	return result, nil
+	for i, v := range credentialResult.Results {
+		credInts[i] = v.ID
+	}
+	sort.Ints(credInts)
+	return credInts, nil
 }
 
 // ListJobTemplates shows a list of job templates.
@@ -159,6 +173,21 @@ func (jt *JobTemplateService) CreateJobTemplate(data map[string]interface{}, par
 // UpdateJobTemplate updates a job template.
 func (jt *JobTemplateService) UpdateJobTemplate(id int, data map[string]interface{}, params map[string]string) (*JobTemplate, error) {
 	result := new(JobTemplate)
+
+	// compare value of credential_ids list from data["credential_ids"] to what is in AWX
+	// remove credential_ids from data so it doesn't end up in payload
+	// then after patchJSON call below - make calls to new functions to associate/dissaciate as neecessary
+	// Then put the new list as found in data abobe back into the resp after the parent PatchJSON call
+
+	credentials := data["credential_ids"].([]interface{})
+	credentialInts := make([]int, len(credentials))
+	for i, v := range credentials {
+		credentialInts[i] = v.(int)
+	}
+
+	// delete credentials as it's no part of the AWX api for job templates directly
+	delete(data, "credential_ids")
+	/// back to existing code
 	endpoint := fmt.Sprintf("%s%d", jobTemplateAPIEndpoint, id)
 	payload, err := json.Marshal(data)
 	if err != nil {
@@ -179,6 +208,34 @@ func (jt *JobTemplateService) UpdateJobTemplate(id int, data map[string]interfac
 	if err := CheckResponse(resp); err != nil {
 		return nil, err
 	}
+	// Get state from AWX and compare to desired TF state
+	existingIds, err := jt.ListJobTemplateCredentials(id, params)
+	if err != nil {
+		return nil, err
+	}
+	// compare list of desired tf state of associated credentials (credentialInts) to
+	//   existing AWX state (existingIds) and then assoc/dissoc credentials from the job template as needed
+	if !slices.Equal(existingIds, credentialInts) {
+		for _, v := range credentialInts {
+			if !slices.Contains(existingIds, v) {
+				err := jt.AssocCredentialToTemplate(id, v)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+		for _, v := range existingIds {
+			if !slices.Contains(credentialInts, v) {
+				err := jt.DisassocCredentialToTemplate(id, v)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+	// add back the credentials
+	result.Credentials = credentialInts
+	// end my new code
 	return result, nil
 }
 
@@ -238,6 +295,59 @@ func (jt *JobTemplateService) DisAssociateCredentials(id int, data map[string]in
 	}
 
 	return result, nil
+}
+
+// AssocCredentialToTemplate will post an API request to associate one credential by ID to a job template by ID
+func (jt *JobTemplateService) AssocCredentialToTemplate(jtId int, credentialId int) error {
+
+	endpoint := fmt.Sprintf("%s%d/credentials/", jobTemplateAPIEndpoint, jtId)
+
+	data := map[string]int{
+		"id": credentialId,
+	}
+
+	payload, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	resp, err := jt.client.Requester.PostJSON(endpoint, bytes.NewReader(payload), nil, nil)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != 204 {
+		return fmt.Errorf("responsed with %d, resp: %v", resp.StatusCode, resp)
+	}
+
+	return nil
+}
+
+// DisassocCredentialToTemplate will post an API request to associate one credential by ID to a job template by ID
+func (jt *JobTemplateService) DisassocCredentialToTemplate(jtId int, credentialId int) error {
+
+	endpoint := fmt.Sprintf("%s%d/credentials/", jobTemplateAPIEndpoint, jtId)
+
+	data := map[string]interface{}{
+		"id":           credentialId,
+		"disassociate": true,
+	}
+
+	payload, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	resp, err := jt.client.Requester.PostJSON(endpoint, bytes.NewReader(payload), nil, nil)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != 204 {
+		return fmt.Errorf("responsed with %d, resp: %v", resp.StatusCode, resp)
+	}
+
+	return nil
 }
 
 // AssociateCredentials  adding credentials to JobTemplate.
