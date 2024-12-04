@@ -262,7 +262,7 @@ func resourceJobTemplate() *schema.Resource {
 				Default:  false,
 			},
 			"credential_ids": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
