@@ -281,10 +281,10 @@ func resourceJobTemplate() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-					},
-				},
-			},
-		},
+					}, // closes line 275
+				}, // closes 274
+			}, //closes line 271
+		}, // closes line 26
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
