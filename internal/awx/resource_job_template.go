@@ -323,6 +323,7 @@ func resourceJobTemplateCreate(ctx context.Context, d *schema.ResourceData, m in
 		"webhook_service":                     d.Get("webhook_service").(string),
 		"webhook_credential":                  utils.AtoiDefault(d.Get("webhook_credential").(string), nil),
 		"prevent_instance_group_fallback":     d.Get("prevent_instance_group_fallback").(bool),
+		"credential_ids":                      d.Get("credential_ids"),
 	}, map[string]string{})
 
 	tflog.Debug(ctx, "will we get error")

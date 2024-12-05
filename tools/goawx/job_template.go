@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 // JobTemplateService implements awx job template apis.
@@ -147,6 +149,20 @@ func (jt *JobTemplateService) CreateJobTemplate(data map[string]interface{}, par
 		err := fmt.Errorf("mandatory input arguments are absent: %s", validate)
 		return nil, err
 	}
+
+	//start travis code
+	//var credentials schema.Set
+	credentials := data["credential_ids"].(*schema.Set)
+
+	credentialInts := make([]int, credentials.Len())
+	for i, v := range credentials.List() {
+		credentialInts[i] = v.(int)
+	}
+
+	// delete credentials as it's no part of the AWX api for job templates directly
+	delete(data, "credential_ids")
+	/// back to existing code
+
 	payload, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
@@ -167,6 +183,18 @@ func (jt *JobTemplateService) CreateJobTemplate(data map[string]interface{}, par
 	if err := CheckResponse(resp); err != nil {
 		return nil, err
 	}
+
+	// Associate credentials
+	for _, v := range credentialInts {
+		err := jt.AssocCredentialToTemplate(result.ID, v)
+		if err != nil {
+			return nil, err
+		}
+	}
+	// add back the credentials
+	result.Credentials = credentialInts
+	// end my new code
+
 	return result, nil
 }
 
@@ -179,9 +207,10 @@ func (jt *JobTemplateService) UpdateJobTemplate(id int, data map[string]interfac
 	// then after patchJSON call below - make calls to new functions to associate/dissaciate as neecessary
 	// Then put the new list as found in data abobe back into the resp after the parent PatchJSON call
 
-	credentials := data["credential_ids"].([]interface{})
-	credentialInts := make([]int, len(credentials))
-	for i, v := range credentials {
+	credentials := data["credential_ids"].(*schema.Set)
+
+	credentialInts := make([]int, credentials.Len())
+	for i, v := range credentials.List() {
 		credentialInts[i] = v.(int)
 	}
 
