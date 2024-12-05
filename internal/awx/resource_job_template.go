@@ -281,6 +281,57 @@ func resourceJobTemplate() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
+						"spec": {
+							Type:     schema.TypeSet,
+							Required: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"type": {
+										Type:        schema.TypeString,
+										Required:    true,
+										Description: "Valid values: text, password, integer, float, multiplechoice, multiselect.",
+									}, // closes type within elem of spec
+									"question_name": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"question_description": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"variable": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"required": {
+										Type:     schema.TypeBool,
+										Optional: true,
+										Default:  false,
+									},
+									"default": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+									"min": {
+										Type:     schema.TypeInt,
+										Optional: true,
+										Default:  0,
+									},
+									"max": {
+										Type:     schema.TypeInt,
+										Optional: true,
+										Default:  1024,
+									},
+									"choices": {
+										Type:     schema.TypeList,
+										Optional: true,
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+								}, // closes spec's interanla map
+							},
+						}, // closes "spec" map element
 					}, // closes schema for elem of survey spec MAP definition
 				}, // closes survey_spec ELEM definition
 			}, //closes survey_spec itself
