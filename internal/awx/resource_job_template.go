@@ -271,62 +271,15 @@ func resourceJobTemplate() *schema.Resource {
 			"survey_spec": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				Elem: map[string]*schema.Schema{
-					"name": {
-						Type:     schema.TypeString,
-						Required: true,
-					},
-					"description": {
-						Type:     schema.TypeString,
-						Required: true,
-					},
-					"spec": {
-						Type:     schema.TypeList,
-						Required: true,
-						Elem: map[string]*schema.Schema{
-							"type": {
-								Type:        schema.TypeString,
-								Required:    true,
-								Description: "Valid values: text, password, integer, float, multiplechoice, multiselect.",
-							},
-							"question_name": {
-								Type:     schema.TypeString,
-								Required: true,
-							},
-							"question_description": {
-								Type:     schema.TypeString,
-								Required: true,
-							},
-							"variable": {
-								Type:     schema.TypeString,
-								Required: true,
-							},
-							"required": {
-								Type:     schema.TypeBool,
-								Optional: true,
-								Default:  false,
-							},
-							"default": {
-								Type:     schema.TypeString,
-								Optional: true,
-							},
-							"min": {
-								Type:     schema.TypeInt,
-								Optional: true,
-								Default:  0,
-							},
-							"max": {
-								Type:     schema.TypeInt,
-								Optional: true,
-								Default:  1024,
-							},
-							"choices": {
-								Type:     schema.TypeList,
-								Optional: true,
-								Elem: &schema.Schema{
-									Type: schema.TypeInt,
-								},
-							},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"description": {
+							Type:     schema.TypeString,
+							Required: true,
 						},
 					},
 				},
