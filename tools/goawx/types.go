@@ -438,6 +438,25 @@ type JobTemplateCredentialsResults struct {
 	ID int `json:"id"`
 }
 
+type JobTemplateSurveySpec struct {
+	Name        string       `json:"name"`
+	Description string       `json:"description"`
+	Spec        []SurveySpec `json:"spec"`
+}
+
+type SurveySpec struct {
+	Max      int      `json:"max"`
+	Min      int      `json:"min"`
+	Type     string   `json:"type"`
+	Choices  []string `json:"choices"`
+	Default  string   `json:"default"`
+	Required bool     `json:"required"`
+	Variable string   `json:"variable"`
+	//`json:"new_question"`: true,
+	QuestionName        string `json:"question_name"`
+	QuestionDescription string `json:"question_description"`
+}
+
 // JobLaunch represents the awx api job launch.
 //
 //nolint:maligned

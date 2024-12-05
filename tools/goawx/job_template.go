@@ -52,8 +52,40 @@ func (jt *JobTemplateService) GetJobTemplateByID(id int, params map[string]strin
 	result.Credentials = append(result.Credentials, associatedCredentials...)
 
 	sort.Ints(result.Credentials)
+
+	// get spec
+	surveySpec, err := jt.ReadJobTemplateSurveySpec(id, params)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(surveySpec)
+	// put result ^^ into full result
+
 	// end my code
 	return result, nil
+}
+
+// ReadJobTemplateSurveySpec gets the job template's associated survey_spec
+func (jt *JobTemplateService) ReadJobTemplateSurveySpec(id int, params map[string]string) (*JobTemplateSurveySpec, error) {
+	specResult := new(JobTemplateSurveySpec)
+	endpoint := fmt.Sprintf("%s%d/survey_spec/", jobTemplateAPIEndpoint, id)
+	resp, err := jt.client.Requester.GetJSON(endpoint, specResult, params)
+	if resp != nil {
+		func() {
+			if err := resp.Body.Close(); err != nil {
+				fmt.Println(err)
+			}
+		}()
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if err := CheckResponse(resp); err != nil {
+		return nil, err
+	}
+
+	return specResult, nil
 }
 
 // ListJobTemplateCredentials returns a list of int ids for credentials associated
