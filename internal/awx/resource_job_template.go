@@ -281,9 +281,9 @@ func resourceJobTemplate() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-					}, // closes line 275
-				}, // closes 274
-			}, //closes line 271
+					}, // closes schema for elem of survey spec MAP definition
+				}, // closes survey_spec ELEM definition
+			}, //closes survey_spec itself
 		}, // closes line 26
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
