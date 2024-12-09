@@ -22,6 +22,18 @@ func DiagFetch(method string, id interface{}, err error) diag.Diagnostics {
 	)
 }
 
+// DiagSet : Return the message for the set failure
+func DiagSet(field string, id interface{}, err error) diag.Diagnostics {
+	if err == nil {
+		err = fmt.Errorf("set failed")
+	}
+	return Diagf(
+		fmt.Sprintf("Unable to set %s", field),
+		"Unable to set %s with id %v, got %s",
+		field, id, err,
+	)
+}
+
 // DiagCreate : Return the message for the create method
 func DiagCreate(method string, err error) diag.Diagnostics {
 	if err == nil {

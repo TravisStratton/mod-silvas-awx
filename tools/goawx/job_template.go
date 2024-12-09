@@ -53,15 +53,6 @@ func (jt *JobTemplateService) GetJobTemplateByID(id int, params map[string]strin
 
 	sort.Ints(result.Credentials)
 
-	// get spec
-	surveySpec, err := jt.ReadJobTemplateSurveySpec(id, params)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println(surveySpec)
-	// put result ^^ into full result
-
-	// end my code
 	return result, nil
 }
 
@@ -78,13 +69,29 @@ func (jt *JobTemplateService) ReadJobTemplateSurveySpec(id int, params map[strin
 		}()
 	}
 	if err != nil {
-		return nil, err
+		return specResult, err
 	}
 
 	if err := CheckResponse(resp); err != nil {
-		return nil, err
+		return specResult, err
 	}
+	/// TRAVIS START HERE - make a []map[string]string and thenloop
+	//     and convert each thing to string  , perhaps fmt.Sprintf("%v",var) for each item in each list values' map
 
+	// THIS WOKRS, SORTA --- maybe find way to have it export as jsonencode()
+	// or instead of using Springf(%v) just build a string with value with quotes on either side?
+	ListmapStringString := make([]map[string]any, 0)
+
+	for i, v := range specResult.Spec {
+		fmt.Print(i)
+		fmt.Print(v)
+		mapStringer := make(map[string]any)
+		for k, val := range specResult.Spec[i] {
+			mapStringer[k] = fmt.Sprintf("%v", val)
+		}
+		ListmapStringString = append(ListmapStringString, mapStringer)
+	}
+	specResult.Spec = ListmapStringString
 	return specResult, nil
 }
 

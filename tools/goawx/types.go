@@ -427,6 +427,9 @@ type JobTemplate struct {
 	WebhookCredential               string      `json:"webhook_credential"`
 	PreventInstanceGroupFallback    bool        `json:"prevent_instance_group_fallback"`
 	Credentials                     []int       `json:"credentials"`
+	//SurveySpec                      interface{} `json:"survey_spec"`     // doesn't work
+	//SurveySpec                      *JobTemplateSurveySpec `json:"survey_spec"`  // doesn't work
+	//SurveySpec *schema.Set `json:"survey_spec,omitempty"`
 }
 
 type JobTemplateCredentials struct {
@@ -439,19 +442,19 @@ type JobTemplateCredentialsResults struct {
 }
 
 type JobTemplateSurveySpec struct {
-	Name        string       `json:"name"`
-	Description string       `json:"description"`
-	Spec        []SurveySpec `json:"spec"`
+	Name        string           `json:"name"`
+	Description string           `json:"description"`
+	Spec        []map[string]any `json:"spec"` // if this isn't any at end then unmarshal wont' work
 }
 
 type SurveySpec struct {
-	Max      int      `json:"max"`
-	Min      int      `json:"min"`
-	Type     string   `json:"type"`
-	Choices  []string `json:"choices"`
-	Default  string   `json:"default"`
-	Required bool     `json:"required"`
-	Variable string   `json:"variable"`
+	Max      int    `json:"max"`
+	Min      int    `json:"min"`
+	Type     string `json:"type"`
+	Choices  any    `json:"choices"`
+	Default  any    `json:"default"`
+	Required bool   `json:"required"`
+	Variable string `json:"variable"`
 	//`json:"new_question"`: true,
 	QuestionName        string `json:"question_name"`
 	QuestionDescription string `json:"question_description"`

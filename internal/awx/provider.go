@@ -74,6 +74,7 @@ func Provider() *schema.Provider { //nolint:funlen
 			"awx_job_template_credential":                             resourceJobTemplateCredentials(),
 			"awx_job_template_instance_groups":                        resourceJobTemplateInstanceGroups(),
 			"awx_job_template":                                        resourceJobTemplate(),
+			"awx_job_template_survey":                                 resourceJobTemplateSurvey(),
 			"awx_job_template_launch":                                 resourceJobTemplateLaunch(),
 			"awx_job_template_notification_template_error":            resourceJobTemplateNotificationTemplateError(),
 			"awx_job_template_notification_template_started":          resourceJobTemplateNotificationTemplateStarted(),
